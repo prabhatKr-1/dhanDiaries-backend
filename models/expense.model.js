@@ -22,6 +22,10 @@ const expenseSchema = new mongoose.Schema(
       ],
       default: "Others",
     },
+    user: {
+      type: mongoose.Schema.ObjectId,
+      ref: "User",
+    },
   },
   { timestamps: true }
 );
