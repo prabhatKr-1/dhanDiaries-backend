@@ -1,7 +1,7 @@
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
-import { User } from "../models/user.model";
-import ApiError from "../utils/ApiError";
+import { User } from "../models/user.model.js";
+import ApiError from "../utils/ApiError.js";
 
 // Function to generate tokens
 const generateAccessAndRefreshTokens = async (userId) => {

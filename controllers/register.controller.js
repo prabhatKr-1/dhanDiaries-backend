@@ -1,7 +1,7 @@
 import bcrypt from "bcrypt";
-import {User} from "../models/user.model";
-import ApiError from "../utils/ApiError";
-import { ApiResponse } from "../utils/ApiResponse";
+import {User} from "../models/user.model.js";
+import ApiError from "../utils/ApiError.js";
+import { ApiResponse } from "../utils/ApiResponse.js";
 
 const registerUser = async (req, res) => {
   const { email, name, password, budget } = req.body;
