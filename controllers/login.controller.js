@@ -1,8 +1,7 @@
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
 import { User } from "../models/user.model.js";
-import ApiError from "../utils/ApiError.js";
-
+import ApiResponse from "../utils/ApiResponse.js";
 // Function to generate tokens
 const generateAccessAndRefreshTokens = async (userId) => {
   try {
@@ -15,8 +14,9 @@ const generateAccessAndRefreshTokens = async (userId) => {
 
     return { accessToken, refreshToken };
   } catch (error) {
-    throw new ApiError(
+    throw new ApiResponse(
       500,
+      error,
       "Something went wrong while generating refresh and access token"
     );
   }
@@ -27,12 +27,12 @@ const loginUser = async (req, res) => {
 
   const user = await User.findOne({ email });
   if (!user) {
-    throw new ApiError(401, "User Doesn't Exists!");
+    return res.json(new ApiResponse(401, "User Doesn't Exists!"));
   }
 
   const rightPassword = await bcrypt.compare(password, user.password);
   if (!rightPassword) {
-    throw new ApiError(402, "Invalid Password!");
+    return res.json(new ApiResponse(402, "Invalid Password!"));
   }
   const { accessToken, refreshToken } = await generateAccessAndRefreshTokens(
     user._id

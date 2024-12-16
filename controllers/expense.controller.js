@@ -1,16 +1,19 @@
 import mongoose from "mongoose";
 import { Expense } from "../models/expense.model.js";
 import { User } from "../models/user.model.js";
-import ApiError from "../utils/ApiError.js";
 import ApiResponse from "../utils/ApiResponse.js";
 
 // Function to validate expense data
 const validateExpenseData = ({ expense, category, amount, user }) => {
   if (!expense || !category || !amount || !user) {
-    throw new ApiError(400, "All fields are required");
+    return res
+      .status(400)
+      .json(new ApiResponse(400, "All fields are required"));
   }
   if (amount <= 0) {
-    throw new ApiError(400, "Amount must be greater than 0");
+    return res
+      .status(401)
+      .json(new ApiResponse(401, "Amount must be greater than 0"));
   }
 };
 
@@ -19,12 +22,14 @@ const updateBudget = async (email, amount, adding) => {
   try {
     const user = await User.findOne({ email });
     if (!user) {
-      throw new ApiError(401, "User Doesn't Exist!");
+      return res.status(403).json(new ApiResponse(403, "User Doesn't Exist!"));
     }
     user.budget += adding ? -amount : amount;
     await user.save();
   } catch (error) {
-    throw new ApiError(500, "Error updating budget");
+    return res
+      .status(400)
+      .json(new ApiResponse(500, "Error updating budget"), error);
   }
 };
 
@@ -50,7 +55,7 @@ const createExpense = async (req, res) => {
     // Respond with success
     return res
       .status(200)
-      .json(new ApiResponse(200, newExpense, "Expense added successfully!"));
+      .json(new ApiResponse(200, "Expense added successfully!", newExpense));
   } catch (error) {
     return res.status(error.statusCode || 500).json({ error: error.message });
   }
@@ -63,20 +68,20 @@ const deleteExpense = async (req, res) => {
 
     const expense = await Expense.findOne({ _id: req.params.id });
     if (!expense) {
-      return res.json(new ApiError(402, "No expense present!"));
+      return res.status(400).json(new ApiResponse(402, "No expense present!"));
     }
     await updateBudget(user.email, amount, false);
     const deletedExpense = await Expense.deleteOne({ _id: req.params.id });
     res
       .status(202)
       .json(
-        new ApiResponse(202, deletedExpense, "Expense Deleted Successfully")
+        new ApiResponse(202, "Expense Deleted Successfully", deletedExpense)
       );
   } catch (error) {
     return res
       .status(error.statusCode || 500)
       .json(
-        new ApiError(
+        new ApiResponse(
           error.statusCode || 500,
           "Something went wrong while deleting the expense",
           error
@@ -93,7 +98,7 @@ const updateExpense = async (req, res) => {
     // Find the expense to be updated
     const updatedExpense = await Expense.findOne({ _id: req.params.id });
     if (!updatedExpense) {
-      return res.status(404).json(new ApiError(404, "Expense Not Found!"));
+      return res.status(404).json(new ApiResponse(404, "Expense Not Found!"));
     }
 
     // Get the previous amount of the expense
@@ -114,13 +119,13 @@ const updateExpense = async (req, res) => {
     return res
       .status(200)
       .json(
-        new ApiResponse(200, updatedExpense, "Expense Updated Successfully!")
+        new ApiResponse(200, "Expense Updated Successfully!", updatedExpense)
       );
   } catch (error) {
     return res
       .status(error.statusCode || 500)
       .json(
-        new ApiError(
+        new ApiResponse(
           error.statusCode || 501,
           "Something went wrong while updating the expense",
           error
@@ -136,15 +141,15 @@ const getExpense = async (req, res) => {
 
     return res
       .status(200)
-      .json(new ApiResponse(200, expenses, "Expenses fetched successfully!"));
+      .json(new ApiResponse(200, "Expenses fetched successfully!", expenses));
   } catch (error) {
     return res
       .status(error.statusCode || 500)
       .json(
-        new ApiError(
+        new ApiResponse(
           error.statusCode || 500,
-          "Error fetching expenses for the user",
-          error
+          error,
+          "Error fetching expenses for the user"
         )
       );
   }

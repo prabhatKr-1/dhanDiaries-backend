@@ -1,4 +1,4 @@
-import express from "express";
+import express, { urlencoded } from "express";
 import connectDB from "./db/index.js";
 import dotenv from "dotenv";
 import authRoutes from "./routes/auth.route.js";
@@ -11,6 +11,9 @@ const port = 3000;
 dotenv.config({
   path: "./.env",
 });
+
+app.use(express.json())
+app.use(express.urlencoded({extended:true}))
 
 connectDB();
 
