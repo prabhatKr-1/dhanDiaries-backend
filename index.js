@@ -13,7 +13,7 @@ dotenv.config({
 
 connectDB();
 
-app.use("/api/v1 / auth",authRoutes);
+app.use("/api/v1/auth",authRoutes);
 
 app.listen(port, () => {
   console.log(`Server is running on port: ${port}`);
