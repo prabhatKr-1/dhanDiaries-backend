@@ -1,7 +1,9 @@
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
 import { User } from "../models/user.model.js";
+import ApiError from "../utils/ApiError.js";
 import ApiResponse from "../utils/ApiResponse.js";
+
 // Function to generate tokens
 const generateAccessAndRefreshTokens = async (userId) => {
   try {
@@ -14,54 +16,56 @@ const generateAccessAndRefreshTokens = async (userId) => {
 
     return { accessToken, refreshToken };
   } catch (error) {
-    throw new ApiResponse(
-      500,
-      error,
-      "Something went wrong while generating refresh and access token"
-    );
+    throw new ApiError("Error generating access and refresh tokens", 403);
   }
 };
 
-const loginUser = async (req, res) => {
-  const { email, password } = req.body;
+// Login user function
+const loginUser = async (req, res, next) => {
+  try {
+    const { email, password } = req.body;
 
-  const user = await User.findOne({ email });
-  if (!user) {
-    return res.json(new ApiResponse(401, "User Doesn't Exists!"));
-  }
+    // Check if the user exists
+    const user = await User.findOne({ email });
+    if (!user) {
+      return next(new ApiError("User doesn't exist", 404)); // Use ApiError
+    }
 
-  const rightPassword = await bcrypt.compare(password, user.password);
-  if (!rightPassword) {
-    return res.json(new ApiResponse(402, "Invalid Password!"));
-  }
-  const { accessToken, refreshToken } = await generateAccessAndRefreshTokens(
-    user._id
-  );
+    // Validate the password
+    const rightPassword = await user.isPasswordCorrect(password);
+    if (!rightPassword) {
+      return next(new ApiError("Invalid password", 401));
+    }
 
-  const loggedInUser = await User.findById(user._id).select(
-    "-password -refreshToken"
-  );
+    // Generate tokens
+    const { accessToken, refreshToken } = await generateAccessAndRefreshTokens(
+      user._id
+    );
 
-  const options = {
-    httpOnly: true,
-    secure: true,
-  };
+    // Fetch user details without sensitive fields
+    const loggedInUser = await User.findById(user._id).select(
+      "-password -refreshToken"
+    );
 
-  return res
-    .status(200)
-    .cookie("accessToken", accessToken, options)
-    .cookie("refreshToken", refreshToken, options)
-    .json(
-      new ApiResponse(
-        200,
-        {
+    const options = {
+      httpOnly: true,
+      secure: true,
+    };
+
+    return res
+      .status(200)
+      .cookie("accessToken", accessToken, options)
+      .cookie("refreshToken", refreshToken, options)
+      .json(
+        new ApiResponse(200, "Successfully logged in", {
           user: loggedInUser,
           accessToken,
           refreshToken,
-        },
-        "Successfully logged In!"
-      )
-    );
+        })
+      );
+  } catch (error) {
+    next(error);
+  }
 };
 
 export default loginUser;

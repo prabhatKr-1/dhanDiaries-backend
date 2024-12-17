@@ -2,18 +2,15 @@ import mongoose from "mongoose";
 import { Expense } from "../models/expense.model.js";
 import { User } from "../models/user.model.js";
 import ApiResponse from "../utils/ApiResponse.js";
+import ApiError from "../utils/ApiError.js";
 
 // Function to validate expense data
 const validateExpenseData = ({ expense, category, amount, user }) => {
   if (!expense || !category || !amount || !user) {
-    return res
-      .status(400)
-      .json(new ApiResponse(400, "All fields are required"));
+    throw new ApiError("All fields are required", 400);
   }
   if (amount <= 0) {
-    return res
-      .status(401)
-      .json(new ApiResponse(401, "Amount must be greater than 0"));
+    throw new ApiError("Amount must be greater than 0", 400);
   }
 };
 
@@ -22,19 +19,17 @@ const updateBudget = async (email, amount, adding) => {
   try {
     const user = await User.findOne({ email });
     if (!user) {
-      return res.status(403).json(new ApiResponse(403, "User Doesn't Exist!"));
+      throw new ApiError("User doesn't exist", 404);
     }
     user.budget += adding ? -amount : amount;
     await user.save();
   } catch (error) {
-    return res
-      .status(400)
-      .json(new ApiResponse(500, "Error updating budget"), error);
+    throw new ApiError("Error updating budget", 500, error);
   }
 };
 
 // Function to create an expense
-const createExpense = async (req, res) => {
+const createExpense = async (req, res, next) => {
   try {
     const { expense, category, amount, user } = req.body;
 
@@ -49,59 +44,50 @@ const createExpense = async (req, res) => {
       user,
     });
 
-    // Update the user's budget
     await updateBudget(user.email, amount, true);
 
-    // Respond with success
-    return res
+    res
       .status(200)
       .json(new ApiResponse(200, "Expense added successfully!", newExpense));
   } catch (error) {
-    return res.status(error.statusCode || 500).json({ error: error.message });
+    next(error);
   }
 };
 
-// Deleting an expense
-const deleteExpense = async (req, res) => {
+// Function to delete an expense
+const deleteExpense = async (req, res, next) => {
   try {
     const { amount, user } = req.body;
 
+    // Find the expense to delete
     const expense = await Expense.findOne({ _id: req.params.id });
     if (!expense) {
-      return res.status(400).json(new ApiResponse(402, "No expense present!"));
+      throw new ApiError("No expense present", 404);
     }
+
     await updateBudget(user.email, amount, false);
+
     const deletedExpense = await Expense.deleteOne({ _id: req.params.id });
+
     res
       .status(202)
       .json(
-        new ApiResponse(202, "Expense Deleted Successfully", deletedExpense)
+        new ApiResponse(202, "Expense deleted successfully", deletedExpense)
       );
   } catch (error) {
-    return res
-      .status(error.statusCode || 500)
-      .json(
-        new ApiResponse(
-          error.statusCode || 500,
-          "Something went wrong while deleting the expense",
-          error
-        )
-      );
+    next(error);
   }
 };
 
-// Updating an expense
-const updateExpense = async (req, res) => {
-  const { amount, expense, user, category, _id } = req.body;
-
+// Function to update an expense
+const updateExpense = async (req, res, next) => {
   try {
-    // Find the expense to be updated
+    const { amount, expense, user, category } = req.body;
     const updatedExpense = await Expense.findOne({ _id: req.params.id });
     if (!updatedExpense) {
-      return res.status(404).json(new ApiResponse(404, "Expense Not Found!"));
+      throw new ApiError("Expense not found", 404);
     }
 
-    // Get the previous amount of the expense
     const prevAmount = updatedExpense.amount;
 
     // Update the expense details
@@ -116,42 +102,28 @@ const updateExpense = async (req, res) => {
 
     await updatedExpense.save();
 
-    return res
+    res
       .status(200)
       .json(
-        new ApiResponse(200, "Expense Updated Successfully!", updatedExpense)
+        new ApiResponse(200, "Expense updated successfully!", updatedExpense)
       );
   } catch (error) {
-    return res
-      .status(error.statusCode || 500)
-      .json(
-        new ApiResponse(
-          error.statusCode || 501,
-          "Something went wrong while updating the expense",
-          error
-        )
-      );
+    next(error);
   }
 };
 
-const getExpense = async (req, res) => {
+// Function to get expenses
+const getExpense = async (req, res, next) => {
   try {
     const { email } = req.params;
+
     const expenses = await Expense.find({ user: email });
 
-    return res
+    res
       .status(200)
       .json(new ApiResponse(200, "Expenses fetched successfully!", expenses));
   } catch (error) {
-    return res
-      .status(error.statusCode || 500)
-      .json(
-        new ApiResponse(
-          error.statusCode || 500,
-          error,
-          "Error fetching expenses for the user"
-        )
-      );
+    next(error);
   }
 };
 
