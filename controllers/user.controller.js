@@ -1,8 +1,36 @@
-import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
 import { User } from "../models/user.model.js";
-import ApiError from "../utils/ApiError.js";
 import ApiResponse from "../utils/ApiResponse.js";
+import ApiError from "../utils/ApiError.js";
+
+// New user registration
+const registerUser = async (req, res, next) => {
+  try {
+    const { email, name, password, budget } = req.body;
+
+    const userExists = await User.findOne({ email });
+    if (userExists) {
+      return next(new ApiError("User already exists", 409));
+    }
+
+    // Hash the user's password
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Create a new user
+    const user = await User.create({
+      email,
+      name,
+      password: hashedPassword,
+      budget,
+    });
+
+    return res
+      .status(201)
+      .json(new ApiResponse(201, "User registered successfully", user));
+  } catch (error) {
+    next(error);
+  }
+};
 
 // Function to generate tokens
 const generateAccessAndRefreshTokens = async (userId) => {
@@ -68,4 +96,18 @@ const loginUser = async (req, res, next) => {
   }
 };
 
-export default loginUser;
+const getProfile = async (req, res, next) => {
+  try {
+    if (!req.user) {
+      next(new ApiError("User not found in request", 404));
+    }
+    return res.status(203).json(
+      new ApiResponse(203, "Profile fetched successfully!", {
+        user: req.user,
+      })
+    );
+  } catch (error) {
+    next(error);
+  }
+};
+export { registerUser, loginUser, getProfile };
