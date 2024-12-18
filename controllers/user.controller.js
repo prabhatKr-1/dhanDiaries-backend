@@ -110,4 +110,34 @@ const getProfile = async (req, res, next) => {
     next(error);
   }
 };
-export { registerUser, loginUser, getProfile };
+
+const logoutUser = async (req, res, next) => {
+  try {
+    await User.findByIdAndUpdate(
+      req.user._id,
+      {
+        $unset: {
+          refreshToken: 1, // removes the field from document
+        },
+      },
+      {
+        new: true,
+      }
+    );
+
+    const options = {
+      httpOnly: true,
+      secure: true,
+    };
+
+    return res
+      .status(200)
+      .clearCookie("accessToken", options)
+      .clearCookie("refreshToken", options)
+      .json(new ApiResponse(200, "User logged Out"));
+  } catch (error) {
+    next(error);
+  }
+};
+
+export { registerUser, loginUser, getProfile, logoutUser };
