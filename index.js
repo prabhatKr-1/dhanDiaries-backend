@@ -4,6 +4,7 @@ import dotenv from "dotenv";
 import authRoutes from "./routes/auth.route.js";
 import expenseRoutes from "./routes/expense.route.js";
 import { errorMiddleware } from "./utils/ApiError.js";
+import cookieParser from "cookie-parser";
 
 const app = express();
 
@@ -15,7 +16,7 @@ dotenv.config({
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-
+app.use(cookieParser())
 connectDB();
 
 app.use("/api/v1/auth", authRoutes);

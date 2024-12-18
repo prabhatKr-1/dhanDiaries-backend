@@ -4,10 +4,11 @@ import {
   loginUser,
   getProfile,
 } from "../controllers/user.controller.js";
+import { verifyJWT } from "../utils/auth.middleware.js";
 
 const router = Router();
 router.post("/login", loginUser);
 router.post("/register", registerUser);
-router.post("/me", getProfile);
+router.get("/me", verifyJWT, getProfile);
 
 export default router;

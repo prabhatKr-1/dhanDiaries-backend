@@ -99,7 +99,7 @@ const loginUser = async (req, res, next) => {
 const getProfile = async (req, res, next) => {
   try {
     if (!req.user) {
-      next(new ApiError("User not found in request", 404));
+      return next(new ApiError("User not found in request", 404));
     }
     return res.status(203).json(
       new ApiResponse(203, "Profile fetched successfully!", {
