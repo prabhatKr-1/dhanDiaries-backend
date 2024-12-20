@@ -7,7 +7,7 @@ import ApiError from "../utils/ApiError.js";
 const registerUser = async (req, res, next) => {
   try {
     const { email, name, password, budget } = req.body;
-
+    if (!budget) budget = 0;
     const userExists = await User.findOne({ email });
     if (userExists) {
       return next(new ApiError("User already exists", 409));

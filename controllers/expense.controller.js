@@ -19,9 +19,12 @@ const validateExpenseData = ({ expense, category, amount, user }) => {
 // Function to update the user's budget
 const updateBudget = async (user, amount, adding) => {
   try {
-    user.budget += adding ? -amount : amount;
+    // user.budget += adding ? -amount : amount;
+    if (adding) user.budget -= amount;
+    else user.budget += amount;
     await user.save();
   } catch (error) {
+    console.log(error);
     throw new ApiError("Error updating budget", 500, error);
   }
 };
@@ -54,7 +57,7 @@ const createExpense = async (req, res, next) => {
 // Function to delete an expense
 const deleteExpense = async (req, res, next) => {
   try {
-    const { amount, user } = req.body;
+    const { user } = req.body;
 
     // Find the expense to delete
     const expense = await Expense.findOne({ _id: req.params.id });
@@ -62,15 +65,12 @@ const deleteExpense = async (req, res, next) => {
       throw new ApiError("No expense present", 404);
     }
 
-    await updateBudget(user, amount, false);
+    await updateBudget(user, expense.amount, false);
 
     const deletedExpense = await Expense.deleteOne({ _id: req.params.id });
-
     res
       .status(202)
-      .json(
-        new ApiResponse(202, "Expense deleted successfully", deletedExpense)
-      );
+      .json(new ApiResponse(202, "Expense deleted successfully", expense));
   } catch (error) {
     next(error);
   }
