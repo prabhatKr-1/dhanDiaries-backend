@@ -1,4 +1,3 @@
-import mongoose from "mongoose";
 import { Expense } from "../models/expense.model.js";
 import { User } from "../models/user.model.js";
 import ApiResponse from "../utils/ApiResponse.js";
@@ -6,8 +5,11 @@ import ApiError from "../utils/ApiError.js";
 
 // Function to validate expense data
 const validateExpenseData = ({ expense, category, amount, user }) => {
-  if (!expense || !category || !amount || !user) {
+  if (!expense || !amount || !user) {
     throw new ApiError("All fields are required", 400);
+  }
+  if (!category) {
+    category = "Others";
   }
   if (amount <= 0) {
     throw new ApiError("Amount must be greater than 0", 400);
@@ -15,12 +17,8 @@ const validateExpenseData = ({ expense, category, amount, user }) => {
 };
 
 // Function to update the user's budget
-const updateBudget = async (email, amount, adding) => {
+const updateBudget = async (user, amount, adding) => {
   try {
-    const user = await User.findOne({ email });
-    if (!user) {
-      throw new ApiError("User doesn't exist", 404);
-    }
     user.budget += adding ? -amount : amount;
     await user.save();
   } catch (error) {
@@ -41,10 +39,9 @@ const createExpense = async (req, res, next) => {
       expense,
       category,
       amount,
-      user,
+      user: user,
     });
-
-    await updateBudget(user.email, amount, true);
+    await updateBudget(user, amount, true);
 
     res
       .status(200)
@@ -65,7 +62,7 @@ const deleteExpense = async (req, res, next) => {
       throw new ApiError("No expense present", 404);
     }
 
-    await updateBudget(user.email, amount, false);
+    await updateBudget(user, amount, false);
 
     const deletedExpense = await Expense.deleteOne({ _id: req.params.id });
 
@@ -98,7 +95,7 @@ const updateExpense = async (req, res, next) => {
     const difference = amount - prevAmount;
 
     // Update the user's budget based on the difference
-    await updateBudget(user.email, Math.abs(difference), difference < 0);
+    await updateBudget(user, Math.abs(difference), difference < 0);
 
     await updatedExpense.save();
 
@@ -115,9 +112,11 @@ const updateExpense = async (req, res, next) => {
 // Function to get expenses
 const getExpense = async (req, res, next) => {
   try {
-    const { email } = req.params;
-
-    const expenses = await Expense.find({ user: email });
+    const { user } = req.body;
+    if (!user) {
+      return next(new ApiError("Couldn't fetch user details", 502));
+    }
+    const expenses = await Expense.find({ user });
 
     res
       .status(200)

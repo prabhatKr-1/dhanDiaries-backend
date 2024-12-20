@@ -5,12 +5,13 @@ import {
   deleteExpense,
   getExpense,
 } from "../controllers/expense.controller.js";
+import { verifyJWT } from "../utils/auth.middleware.js";
 
 const router = Router();
 
-router.get("/all", getExpense);
-router.post("/add", createExpense);
-router.delete("/:id", deleteExpense);
-router.put("/:id", updateExpense);
+router.get("/all", verifyJWT, getExpense);
+router.post("/add", verifyJWT, createExpense);
+router.delete("/:id", verifyJWT, deleteExpense);
+router.put("/:id", verifyJWT, updateExpense);
 
 export default router;
